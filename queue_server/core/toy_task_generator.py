@@ -40,5 +40,5 @@ class toy_task_generator:
             new_goal_set = frozenset_of_tuples(new_goal)
             self.problem.positive_goals[0] = new_goal_set
             #print(self.problem.positive_goals)
-        task_object = TaskQueueObject(self.configuaration, self.problem)    
+        task_object = TaskQueueObject(self.configuaration, self.domain, self.problem)    
         return task_object

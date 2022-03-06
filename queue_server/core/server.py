@@ -1,3 +1,4 @@
+import queue
 import socket
 import os
 import json
@@ -25,7 +26,7 @@ class QueueServer:
 
         self.task_generator = task_generator(self.domain, self.problem, self.init_config)
         self.task_queue = Queue(100)
-        self.motion_queue = Queue(100)
+        self.motion_queue = Queue(500)
         #print(self.init_config)
 
     
@@ -33,7 +34,7 @@ class QueueServer:
         self.socket.listen()
         conn, addr = self.socket.accept()
         with conn:
-            recevied_data = conn.recv(10000)
+            recevied_data = conn.recv(100000)
             return_value = self.handle_request(recevied_data)
             #recevied_data = pickle.loads(recevied_data)
             if return_value is not None:
@@ -62,14 +63,17 @@ class QueueServer:
                 self.task_queue.put(self.task_generator.generate_task(is_random = True))
             return_message.set_command("TaskProblem", pickle.dumps(self.task_queue.get()))
         elif request.command == "PutMotionProblem":
-            motion_object = pickle.loads(request.data)
-            if isinstance(motion_object, MotionQueueObject):
-                self.motion_queue.put(motion_object)
-                # for action in motion_object.skeleton:
-                #     print(action)
-                return_message.set_command("Successful", [])
-            else: 
-                return_message.set_command("Error", "InvalidMessage")
+            if self.motion_queue.full():
+                return_message.set_command("Error", "MotionQueueIsFull")
+            else:
+                motion_object = pickle.loads(request.data)
+                if isinstance(motion_object, MotionQueueObject):
+                    self.motion_queue.put(motion_object)
+                    # for action in motion_object.skeleton:
+                    #     print(action)
+                    return_message.set_command("Successful", [])
+                else: 
+                    return_message.set_command("Error", "InvalidMessage")
         return return_message
 
     def handle_motion_node_request(self, request):
